@@ -17,22 +17,27 @@ RUN python -m pip install --no-cache-dir --upgrade pip
 RUN pip3 install --no-cache-dir --upgrade --requirement requirements.txt
 
 # --- Render Free Plan Fix ---
-# Add environment variable and expose dummy web port
 ENV PORT=8080
 EXPOSE 8080
 
-# Create a small Python script to keep Render happy
-# (runs alongside your bot to open a port)
-RUN echo 'import threading, http.server, socketserver;' \
-    'PORT=8080;' \
-    'Handler=http.server.SimpleHTTPRequestHandler;' \
-    'def serve():' \
-    ' httpd=socketserver.TCPServer(("0.0.0.0", PORT), Handler);' \
-    ' print("[INFO] Dummy web server running on port", PORT);' \
-    ' httpd.serve_forever();' \
-    'threading.Thread(target=serve, daemon=True).start();' \
-    'import subprocess; subprocess.call(["bash", "start"])' \
-    > run.py
+# Create proper multi-line run.py (dummy web server + bot)
+RUN printf '%s\n' \
+"import threading" \
+"import http.server" \
+"import socketserver" \
+"import subprocess" \
+"" \
+"PORT = 8080" \
+"Handler = http.server.SimpleHTTPRequestHandler" \
+"" \
+"def serve():" \
+"    httpd = socketserver.TCPServer(('0.0.0.0', PORT), Handler)" \
+"    print('[INFO] Dummy web server running on port', PORT)" \
+"    httpd.serve_forever()" \
+"" \
+"threading.Thread(target=serve, daemon=True).start()" \
+"subprocess.call(['bash', 'start'])" \
+> run.py
 
-# Start both the bot and dummy server
+# Start both dummy server + bot
 CMD ["python3", "run.py"]
